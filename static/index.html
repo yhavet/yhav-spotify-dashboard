@@ -77,12 +77,13 @@
                 <div id="dashboard-message" class="message" role="status" hidden></div>
 
                 <section class="tab-panel" id="panel-artists" aria-labelledby="artists-heading">
+                    <div id="monthly-favorite" class="monthly-favorite" aria-live="polite"></div>
                     <div class="section-heading">
                         <div>
                             <p class="section-kicker">TUS FAVORITOS</p>
                             <h3 id="artists-heading">Artistas que más sonaron <span aria-hidden="true">♡</span></h3>
                         </div>
-                        <span class="section-note">ordenados por reproducciones</span>
+                        <span class="section-note">ordenados por reproducciones · todos los meses</span>
                     </div>
                     <div id="artists-list" class="artist-grid"></div>
                 </section>
@@ -123,7 +124,7 @@
             </div>
 
             <footer class="window-footer">
-                <span><span class="status-dot" aria-hidden="true"></span> Datos leídos desde tu base SQLite</span>
+                <span><span class="status-dot" aria-hidden="true"></span> Datos reales de tu historial</span>
                 <span>hecho con ♡ y un poquito de música</span>
             </footer>
         </section>

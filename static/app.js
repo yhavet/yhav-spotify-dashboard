@@ -2,6 +2,7 @@ const elements = {
     status: document.getElementById("connection-status"),
     totalPlays: document.getElementById("total-plays"),
     message: document.getElementById("dashboard-message"),
+    monthlyFavorite: document.getElementById("monthly-favorite"),
     artists: document.getElementById("artists-list"),
     tracks: document.getElementById("tracks-list"),
     history: document.getElementById("history-list"),
@@ -27,15 +28,31 @@ function addEmptyState(container, text) {
 function processHistory(history) {
     const artistCounts = new Map();
     const trackCounts = new Map();
+    const now = new Date();
+    const currentMonthArtistCounts = new Map();
 
     for (const play of history) {
-        const artists = (play.artist || "Artista desconocido")
+        const artists = (play.artist || "")
             .split(",")
             .map((artist) => artist.trim())
             .filter(Boolean);
 
         for (const artist of artists) {
             artistCounts.set(artist, (artistCounts.get(artist) || 0) + 1);
+        }
+
+        const playedAt = new Date(play.played_at);
+        if (
+            !Number.isNaN(playedAt.getTime()) &&
+            playedAt.getFullYear() === now.getFullYear() &&
+            playedAt.getMonth() === now.getMonth()
+        ) {
+            for (const artist of artists) {
+                currentMonthArtistCounts.set(
+                    artist,
+                    (currentMonthArtistCounts.get(artist) || 0) + 1,
+                );
+            }
         }
 
         const key = play.track_id || `${play.name}:${play.artist}`;
@@ -55,9 +72,56 @@ function processHistory(history) {
         artists: [...artistCounts.entries()]
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es")),
+        monthlyFavorite: [...currentMonthArtistCounts.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"))[0] || null,
+        currentMonth: new Intl.DateTimeFormat("es-AR", {
+            month: "long",
+            year: "numeric",
+        }).format(now),
         tracks: [...trackCounts.values()]
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es")),
     };
+}
+
+function renderMonthlyFavorite(favorite, month) {
+    const card = makeElement("section", "monthly-favorite-card");
+    const copy = makeElement("div", "monthly-favorite-copy");
+    copy.append(
+        makeElement("p", "monthly-favorite-kicker", "ARTISTA FAVORITO DEL MES"),
+        makeElement("h3", "monthly-favorite-month", month),
+        makeElement(
+            "p",
+            "monthly-favorite-note",
+            "Según las reproducciones registradas este mes",
+        ),
+    );
+
+    if (favorite) {
+        const result = makeElement("div", "monthly-favorite-result");
+        result.append(
+            makeElement("span", "monthly-favorite-heart", "♡"),
+            makeElement("span", "monthly-favorite-name", favorite.name),
+            makeElement(
+                "span",
+                "monthly-favorite-count",
+                `${favorite.count} ${favorite.count === 1 ? "reproducción" : "reproducciones"}`,
+            ),
+        );
+        card.append(copy, result);
+    } else {
+        card.classList.add("is-empty");
+        card.append(
+            copy,
+            makeElement(
+                "p",
+                "monthly-favorite-empty",
+                "Todavía no hay reproducciones guardadas de este mes.",
+            ),
+        );
+    }
+
+    elements.monthlyFavorite.replaceChildren(card);
 }
 
 function renderArtists(artists) {
@@ -188,6 +252,7 @@ async function loadDashboard() {
         const analytics = processHistory(history);
         elements.totalPlays.textContent = String(data.total ?? history.length);
         elements.status.textContent = "Base de datos conectada · datos reales";
+        renderMonthlyFavorite(analytics.monthlyFavorite, analytics.currentMonth);
         renderArtists(analytics.artists);
         renderTracks(analytics.tracks);
         renderHistory(history);
@@ -203,6 +268,7 @@ async function loadDashboard() {
             true,
         );
         addEmptyState(elements.artists, "Datos no disponibles.");
+        elements.monthlyFavorite.replaceChildren();
         addEmptyState(elements.tracks, "Datos no disponibles.");
         addEmptyState(elements.history, "Datos no disponibles.");
     }
