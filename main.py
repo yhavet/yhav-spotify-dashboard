@@ -1,10 +1,13 @@
+import json
 import os
 import logging
 import sqlite3
+import time
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+import requests
 
 from database import (
     BASE_DIR,
@@ -22,6 +25,11 @@ app = FastAPI(
 
 DASHBOARD_PATH = os.path.join(BASE_DIR, "static", "index.html")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID") or os.getenv("CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET") or os.getenv("CLIENT_SECRET")
+SPOTIFY_REFRESH_TOKEN = os.getenv("SPOTIFY_REFRESH_TOKEN")
+_spotify_access_token = None
+_spotify_access_token_expires_at = 0
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -72,3 +80,150 @@ def get_history():
         """
     )
     return {"total": len(history), "history": history}
+
+
+def get_spotify_access_token():
+    global _spotify_access_token, _spotify_access_token_expires_at
+
+    if _spotify_access_token and time.monotonic() < _spotify_access_token_expires_at:
+        return _spotify_access_token
+    refresh_token = SPOTIFY_REFRESH_TOKEN
+    if not refresh_token:
+        cache_path = os.path.join(BASE_DIR, ".cache")
+        try:
+            with open(cache_path, encoding="utf-8") as cache_file:
+                refresh_token = json.load(cache_file).get("refresh_token")
+        except FileNotFoundError:
+            pass
+        except (OSError, ValueError) as exc:
+            logger.exception("No se pudo leer el token local de Spotify.")
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo leer la autorización local de Spotify.",
+            ) from exc
+
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET or not refresh_token:
+        raise HTTPException(
+            status_code=503,
+            detail="Falta configurar la conexión de reproducción de Spotify.",
+        )
+
+    try:
+        response = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+            },
+            auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET),
+            timeout=10,
+        )
+        response.raise_for_status()
+        token_data = response.json()
+    except requests.RequestException as exc:
+        logger.exception("No se pudo renovar el token de Spotify.")
+        raise HTTPException(
+            status_code=502,
+            detail="No se pudo conectar con Spotify para consultar la reproducción.",
+        ) from exc
+    except ValueError as exc:
+        logger.exception("Spotify devolvió un token inválido.")
+        raise HTTPException(
+            status_code=502,
+            detail="Spotify devolvió una respuesta de autenticación inválida.",
+        ) from exc
+
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(
+            status_code=502,
+            detail="Spotify no devolvió un token de acceso válido.",
+        )
+
+    _spotify_access_token = access_token
+    _spotify_access_token_expires_at = time.monotonic() + max(
+        token_data.get("expires_in", 3600) - 60,
+        0,
+    )
+    return _spotify_access_token
+
+
+@app.get("/api/now-playing")
+def get_now_playing():
+    global _spotify_access_token, _spotify_access_token_expires_at
+
+    access_token = get_spotify_access_token()
+    try:
+        response = requests.get(
+            "https://api.spotify.com/v1/me/player/currently-playing",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        logger.exception("No se pudo consultar la reproducción actual de Spotify.")
+        raise HTTPException(
+            status_code=502,
+            detail="No se pudo consultar la reproducción actual de Spotify.",
+        ) from exc
+
+    if response.status_code == 204:
+        return {"is_playing": False, "track": None}
+    if response.status_code == 403:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Spotify requiere autorizar el permiso "
+                "user-read-currently-playing."
+            ),
+        )
+    if response.status_code == 401:
+        _spotify_access_token = None
+        _spotify_access_token_expires_at = 0
+        raise HTTPException(
+            status_code=502,
+            detail="Spotify rechazó la autorización. Hay que volver a conectar la cuenta.",
+        )
+    if not response.ok:
+        logger.error(
+            "Spotify devolvió HTTP %s al consultar la reproducción.",
+            response.status_code,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Spotify no pudo devolver la reproducción actual.",
+        )
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Spotify devolvió una reproducción inválida.",
+        ) from exc
+
+    item = data.get("item")
+    if not item:
+        return {"is_playing": False, "track": None}
+
+    album = item.get("album") or {}
+    artists = item.get("artists") or []
+    return {
+        "is_playing": bool(data.get("is_playing")),
+        "progress_ms": data.get("progress_ms"),
+        "track": {
+            "name": item.get("name") or "Canción desconocida",
+            "artist": ", ".join(
+                artist["name"] for artist in artists if artist.get("name")
+            ),
+            "album_image": next(
+                (
+                    image.get("url")
+                    for image in album.get("images", [])
+                    if image.get("url")
+                ),
+                None,
+            ),
+            "duration_ms": item.get("duration_ms"),
+            "spotify_url": (item.get("external_urls") or {}).get("spotify"),
+        },
+    }

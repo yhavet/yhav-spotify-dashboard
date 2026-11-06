@@ -26,19 +26,34 @@
 
         <section class="hero" aria-labelledby="hero-title">
             <div class="hero-copy">
-                <p class="eyebrow"><span aria-hidden="true">♡</span> TU ESPACIO, TU MÚSICA</p>
-                <h1 id="hero-title">Lo que estuvo<br><span>sonando</span></h1>
-                <p class="hero-description">Un pequeño recorrido por tus reproducciones recientes.</p>
+                <p class="eyebrow"><span aria-hidden="true">♫</span> AHORA EN SPOTIFY</p>
+                <h1 id="hero-title">Ahora<br><span>reproduciendo</span></h1>
+                <div class="now-playing-copy" aria-live="polite">
+                    <p id="now-playing-state" class="now-playing-state">Conectando con Spotify…</p>
+                    <p id="now-playing-title" class="now-playing-title"></p>
+                    <p id="now-playing-artist" class="now-playing-artist"></p>
+                    <a
+                        id="now-playing-link"
+                        class="now-playing-link"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        hidden
+                    >Abrir en Spotify ↗</a>
+                </div>
             </div>
             <div class="hero-art" aria-hidden="true">
                 <span class="sparkle sparkle-one">✦</span>
                 <span class="sparkle sparkle-two">✧</span>
-                <div class="record">
-                    <div class="record-label">♡</div>
+                <div id="record" class="record">
+                    <div class="record-label">
+                        <img id="record-image" alt="" hidden>
+                        <span id="record-placeholder">♫</span>
+                    </div>
                 </div>
                 <span class="hero-note">♪</span>
             </div>
-            <div class="hero-sticker" aria-hidden="true">NOW<br>PLAYING</div>
+            <div class="hero-sticker" aria-hidden="true">ON<br>AIR</div>
         </section>
 
         <section class="dashboard-window" aria-label="Dashboard de reproducciones">

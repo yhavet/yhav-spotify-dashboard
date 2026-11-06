@@ -17,6 +17,7 @@ REDIRECT_URI = (
 )
 CACHE_PATH = os.path.join(BASE_DIR, ".cache")
 REFRESH_TOKEN = os.getenv("SPOTIFY_REFRESH_TOKEN")
+SCOPES = "user-read-recently-played user-read-currently-playing"
 
 if not CLIENT_ID or not CLIENT_SECRET:
     raise SystemExit(
@@ -69,7 +70,7 @@ else:
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
             redirect_uri=REDIRECT_URI,
-            scope="user-read-recently-played",
+            scope=SCOPES,
             cache_path=CACHE_PATH,
             open_browser=True,
         )

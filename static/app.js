@@ -1,5 +1,12 @@
 const elements = {
     status: document.getElementById("connection-status"),
+    nowPlayingState: document.getElementById("now-playing-state"),
+    nowPlayingTitle: document.getElementById("now-playing-title"),
+    nowPlayingArtist: document.getElementById("now-playing-artist"),
+    nowPlayingLink: document.getElementById("now-playing-link"),
+    record: document.getElementById("record"),
+    recordImage: document.getElementById("record-image"),
+    recordPlaceholder: document.getElementById("record-placeholder"),
     totalPlays: document.getElementById("total-plays"),
     message: document.getElementById("dashboard-message"),
     monthlyFavorite: document.getElementById("monthly-favorite"),
@@ -7,6 +14,7 @@ const elements = {
     tracks: document.getElementById("tracks-list"),
     history: document.getElementById("history-list"),
 };
+const NOW_PLAYING_POLL_INTERVAL = 30000;
 
 function makeElement(tag, className, text) {
     const element = document.createElement(tag);
@@ -239,8 +247,61 @@ function setupTabs() {
     }
 }
 
+function updateNowPlaying(data) {
+    const track = data.track;
+    elements.record.classList.toggle("is-playing", Boolean(track && data.is_playing));
+    elements.record.classList.toggle("has-cover", Boolean(track && track.album_image));
+
+    if (!track) {
+        elements.nowPlayingState.textContent = "No hay nada reproduciéndose ahora.";
+        elements.nowPlayingTitle.textContent = "";
+        elements.nowPlayingArtist.textContent = "";
+        elements.nowPlayingLink.hidden = true;
+        elements.recordImage.removeAttribute("src");
+        elements.recordImage.hidden = true;
+        elements.recordPlaceholder.hidden = false;
+        return;
+    }
+
+    elements.nowPlayingState.textContent = data.is_playing ? "REPRODUCIENDO AHORA" : "EN PAUSA";
+    elements.nowPlayingTitle.textContent = track.name;
+    elements.nowPlayingArtist.textContent = track.artist || "Artista desconocido";
+    elements.nowPlayingLink.hidden = !track.spotify_url;
+    if (track.spotify_url) elements.nowPlayingLink.href = track.spotify_url;
+
+    const coverUrl = track.album_image ? new URL(track.album_image) : null;
+    const isSpotifyImage = coverUrl?.protocol === "https:" &&
+        (coverUrl.hostname === "scdn.co" || coverUrl.hostname.endsWith(".scdn.co"));
+    if (isSpotifyImage) {
+        elements.recordImage.src = coverUrl.href;
+        elements.recordImage.hidden = false;
+        elements.recordPlaceholder.hidden = true;
+    } else {
+        elements.recordImage.removeAttribute("src");
+        elements.recordImage.hidden = true;
+        elements.recordPlaceholder.hidden = false;
+    }
+}
+
+async function loadNowPlaying() {
+    try {
+        const response = await fetch("/api/now-playing");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `La API respondió HTTP ${response.status}.`);
+        }
+        updateNowPlaying(await response.json());
+    } catch (error) {
+        elements.nowPlayingState.textContent = error.message;
+        elements.record.classList.remove("is-playing");
+        elements.nowPlayingLink.hidden = true;
+    }
+}
+
 async function loadDashboard() {
     setupTabs();
+    loadNowPlaying();
+    window.setInterval(loadNowPlaying, NOW_PLAYING_POLL_INTERVAL);
     try {
         const response = await fetch("/api/history");
         if (!response.ok) {
