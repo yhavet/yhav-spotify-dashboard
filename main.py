@@ -120,11 +120,34 @@ def get_spotify_access_token():
         )
         response.raise_for_status()
         token_data = response.json()
+    except requests.HTTPError as exc:
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else "desconocido"
+        )
+        logger.warning(
+            "Spotify rechazó la renovación del token (HTTP %s).",
+            status_code,
+        )
+        if status_code == 400:
+            detail = (
+                "Spotify no aceptó el refresh token (HTTP 400). "
+                "Vuelve a autorizar la cuenta y actualiza SPOTIFY_REFRESH_TOKEN."
+            )
+        elif status_code == 401:
+            detail = (
+                "Spotify no aceptó las credenciales de la aplicación (HTTP 401). "
+                "Revisa SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET."
+            )
+        else:
+            detail = f"Spotify rechazó la renovación del token (HTTP {status_code})."
+        raise HTTPException(status_code=502, detail=detail) from exc
     except requests.RequestException as exc:
         logger.exception("No se pudo renovar el token de Spotify.")
         raise HTTPException(
             status_code=502,
-            detail="No se pudo conectar con Spotify para consultar la reproducción.",
+            detail="No se pudo conectar con los servidores de Spotify.",
         ) from exc
     except ValueError as exc:
         logger.exception("Spotify devolvió un token inválido.")
