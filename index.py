@@ -1,5 +1,6 @@
 import os
 
+import requests
 import spotipy
 from spotipy.exceptions import SpotifyException
 from spotipy.oauth2 import SpotifyOAuth
@@ -15,22 +16,64 @@ REDIRECT_URI = (
     or "http://127.0.0.1:8080"
 )
 CACHE_PATH = os.path.join(BASE_DIR, ".cache")
+REFRESH_TOKEN = os.getenv("SPOTIFY_REFRESH_TOKEN")
 
 if not CLIENT_ID or not CLIENT_SECRET:
     raise SystemExit(
         "Completa CLIENT_ID y CLIENT_SECRET en el archivo .env del proyecto."
     )
 
-sp = spotipy.Spotify(
-    auth_manager=SpotifyOAuth(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        redirect_uri=REDIRECT_URI,
-        scope="user-read-recently-played",
-        cache_path=CACHE_PATH,
-        open_browser=True,
+if REFRESH_TOKEN:
+    try:
+        token_response = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": REFRESH_TOKEN,
+            },
+            auth=(CLIENT_ID, CLIENT_SECRET),
+            timeout=30,
+        )
+        token_response.raise_for_status()
+        access_token = token_response.json().get("access_token")
+    except requests.RequestException as exc:
+        status_code = (
+            exc.response.status_code
+            if isinstance(exc, requests.HTTPError) and exc.response is not None
+            else "desconocido"
+        )
+        raise SystemExit(
+            "No se pudo renovar el token de Spotify "
+            f"(HTTP {status_code}). Revisa las credenciales y "
+            "SPOTIFY_REFRESH_TOKEN."
+        ) from exc
+    except ValueError as exc:
+        raise SystemExit(
+            "Spotify devolvió una respuesta inválida al renovar el token."
+        ) from exc
+
+    if not access_token:
+        raise SystemExit(
+            "Spotify no devolvió un token de acceso. "
+            "Revisa SPOTIFY_REFRESH_TOKEN."
+        )
+    sp = spotipy.Spotify(auth=access_token)
+elif os.getenv("GITHUB_ACTIONS"):
+    raise SystemExit(
+        "Configura SPOTIFY_REFRESH_TOKEN en los secretos del repositorio "
+        "para ejecutar la extracción automática."
     )
-)
+else:
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            redirect_uri=REDIRECT_URI,
+            scope="user-read-recently-played",
+            cache_path=CACHE_PATH,
+            open_browser=True,
+        )
+    )
 
 conn = connect_database()
 try:
