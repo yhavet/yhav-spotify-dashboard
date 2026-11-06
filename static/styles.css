@@ -87,32 +87,11 @@ button {
     font-size: 11px;
 }
 
-.live-status,
 .record-count,
 .window-footer,
 .window-footer > span {
     display: flex;
     align-items: center;
-}
-
-.live-status {
-    gap: 8px;
-    padding: 8px 13px;
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.62);
-    color: #825d89;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: #64c99b;
-    box-shadow: 0 0 0 3px rgba(100, 201, 155, 0.15);
 }
 
 .hero {
@@ -802,26 +781,13 @@ td:first-child {
 
 .window-footer {
     min-height: 43px;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
     padding: 10px 20px;
     border-top: 1px solid #f1deef;
     background: rgba(255, 255, 255, 0.65);
     color: #8d6a91;
     font-size: 9px;
-}
-
-.window-footer > span {
-    gap: 8px;
-}
-
-.page-footer {
-    padding: 18px 0 0;
-    color: #9a77a1;
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-align: center;
 }
 
 [hidden] {
@@ -911,11 +877,6 @@ td:first-child {
 }
 
 @media (max-width: 440px) {
-    .live-status {
-        max-width: 145px;
-        font-size: 9px;
-    }
-
     .brand-title {
         font-size: 12px;
     }

@@ -1,5 +1,4 @@
 const elements = {
-    status: document.getElementById("connection-status"),
     nowPlayingState: document.getElementById("now-playing-state"),
     nowPlayingTitle: document.getElementById("now-playing-title"),
     nowPlayingArtist: document.getElementById("now-playing-artist"),
@@ -312,7 +311,6 @@ async function loadDashboard() {
         const history = data.history || [];
         const analytics = processHistory(history);
         elements.totalPlays.textContent = String(data.total ?? history.length);
-        elements.status.textContent = "Base de datos conectada · datos reales";
         renderMonthlyFavorite(analytics.monthlyFavorite, analytics.currentMonth);
         renderArtists(analytics.artists);
         renderTracks(analytics.tracks);
@@ -322,7 +320,6 @@ async function loadDashboard() {
             showMessage("La tabla play_history todavía no tiene reproducciones.");
         }
     } catch (error) {
-        elements.status.textContent = "No se pudo conectar con la API";
         elements.totalPlays.textContent = "—";
         showMessage(
             `No se pudieron cargar los datos. Comprueba que FastAPI esté iniciado. ${error.message}`,
