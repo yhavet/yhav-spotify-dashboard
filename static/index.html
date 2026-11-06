@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5a4ce">
+    <title>Mi rincón musical — Spotify Analytics</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="Mi rincón musical, inicio">
+                <span class="brand-icon" aria-hidden="true">♫</span>
+                <span>
+                    <span class="brand-title">mi rincón musical</span>
+                    <span class="brand-subtitle">un diario de lo que suena</span>
+                </span>
+            </a>
+            <div class="live-status">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="connection-status">Conectando con SQLite…</span>
+            </div>
+        </header>
+
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="eyebrow"><span aria-hidden="true">♡</span> TU ESPACIO, TU MÚSICA</p>
+                <h1 id="hero-title">Lo que estuvo<br><span>sonando</span></h1>
+                <p class="hero-description">Un pequeño recorrido por tus reproducciones recientes.</p>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+                <span class="sparkle sparkle-one">✦</span>
+                <span class="sparkle sparkle-two">✧</span>
+                <div class="record">
+                    <div class="record-label">♡</div>
+                </div>
+                <span class="hero-note">♪</span>
+            </div>
+            <div class="hero-sticker" aria-hidden="true">NOW<br>PLAYING</div>
+        </section>
+
+        <section class="dashboard-window" aria-label="Dashboard de reproducciones">
+            <div class="window-bar">
+                <div class="window-controls" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </div>
+                <p>spotify_data_dashboard.exe</p>
+                <span class="window-heart" aria-hidden="true">♥</span>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="welcome-row">
+                    <div>
+                        <p class="eyebrow">VIERNES DE PLAYLIST <span aria-hidden="true">✦</span></p>
+                        <h2>Tu música, en números</h2>
+                    </div>
+                    <div class="record-count">
+                        <span class="record-count-icon" aria-hidden="true">♫</span>
+                        <span><strong id="total-plays">—</strong><small>reproducciones guardadas</small></span>
+                    </div>
+                </div>
+
+                <nav class="tabs" aria-label="Vistas del dashboard">
+                    <button class="tab-button is-active" type="button" data-tab="artists" aria-selected="true">
+                        <span aria-hidden="true">♧</span> Top artistas
+                    </button>
+                    <button class="tab-button" type="button" data-tab="tracks" aria-selected="false">
+                        <span aria-hidden="true">♡</span> Canciones top
+                    </button>
+                    <button class="tab-button" type="button" data-tab="history" aria-selected="false">
+                        <span aria-hidden="true">◷</span> Historial reciente
+                    </button>
+                </nav>
+
+                <div id="dashboard-message" class="message" role="status" hidden></div>
+
+                <section class="tab-panel" id="panel-artists" aria-labelledby="artists-heading">
+                    <div class="section-heading">
+                        <div>
+                            <p class="section-kicker">TUS FAVORITOS</p>
+                            <h3 id="artists-heading">Artistas que más sonaron <span aria-hidden="true">♡</span></h3>
+                        </div>
+                        <span class="section-note">ordenados por reproducciones</span>
+                    </div>
+                    <div id="artists-list" class="artist-grid"></div>
+                </section>
+
+                <section class="tab-panel" id="panel-tracks" aria-labelledby="tracks-heading" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <p class="section-kicker">EN REPETICIÓN</p>
+                            <h3 id="tracks-heading">Tus canciones más escuchadas <span aria-hidden="true">♥</span></h3>
+                        </div>
+                        <span class="section-note">según el historial guardado</span>
+                    </div>
+                    <div id="tracks-list" class="track-list"></div>
+                </section>
+
+                <section class="tab-panel" id="panel-history" aria-labelledby="history-heading" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <p class="section-kicker">MOMENTO A MOMENTO</p>
+                            <h3 id="history-heading">Historial reciente <span aria-hidden="true">✧</span></h3>
+                        </div>
+                        <span class="section-note">hora local</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Canción</th>
+                                    <th>Artista</th>
+                                    <th>Reproducida</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <footer class="window-footer">
+                <span><span class="status-dot" aria-hidden="true"></span> Datos leídos desde tu base SQLite</span>
+                <span>hecho con ♡ y un poquito de música</span>
+            </footer>
+        </section>
+
+        <footer class="page-footer">TU HISTORIAL RECIENTE · ACTUALIZADO AL EJECUTAR LA EXTRACCIÓN</footer>
+    </main>
+</body>
+</html>
